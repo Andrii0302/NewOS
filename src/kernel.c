@@ -3,7 +3,12 @@
 #include <stdint.h>
 #include "idt/idt.h"
 #include "io/io.h"
-
+#include "memory/heap/kheap.h"
+#include "memory/paging/paging.h"
+#include "string/string.h"
+#include "disk/disk.h"
+#include "fs/pparser.h"
+#include "disk/streamer.h"
 uint16_t *video_mem = 0;
 uint16_t terminal_row = 0;
 uint16_t terminal_col = 0;
@@ -49,16 +54,7 @@ void terminal_initialize()
     }
 }
 
-size_t strlen(const char *str)
-{
-    size_t len = 0;
-    while (str[len])
-    {
-        len++;
-    }
 
-    return len;
-}
 
 void print(const char *str)
 {
@@ -68,15 +64,26 @@ void print(const char *str)
         terminal_writechar(str[i], 15);
     }
 }
-
+static struct paging_4gb_chunk* kernel_chunk = 0;
 void kernel_main()
 {
     terminal_initialize();
     print("Hello world!\ntest");
-
+    kheap_init();
+    disk_search_and_init();
     // Initialize the interrupt descriptor table
     idt_init();
+    kernel_chunk = paging_new_4gb(PAGING_IS_WRITEABLE | PAGING_IS_PRESENT | PAGING_ACCESS_FROM_ALL);
 
-    outb(0x60, 0xff);
+    // Switch to kernel paging chunk
+    paging_switch(paging_4gb_chunk_get_directory(kernel_chunk));
+    enable_paging();
+
+    enable_interrupts();
+    struct disk_stream* stream = diskstreamer_new(0);
+    diskstreamer_seek(stream, 0x201);
+    unsigned char c = 0;
+    diskstreamer_read(stream, &c, 1);
+    while(1) {}
 
 }

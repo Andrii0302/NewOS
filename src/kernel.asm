@@ -18,6 +18,17 @@ _start:
     in al, 0x92
     or al, 2
     out 0x92, al
+    ;remap the master pic
+    mov al, 00010001b
+    out 0x20, al ;tell master pic
+
+    mov al, 0x20 ;is where master isr start
+    out 0x21, al
+
+    mov al, 000000001b
+    out 0x21, al
+    ;end remap of master pic
+    
     call kernel_main
     jmp $
 
