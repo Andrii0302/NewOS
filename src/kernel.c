@@ -6,6 +6,7 @@
 #include "memory/heap/kheap.h"
 #include "memory/paging/paging.h"
 #include "string/string.h"
+#include "fs/file.h"
 #include "disk/disk.h"
 #include "fs/pparser.h"
 #include "disk/streamer.h"
@@ -65,11 +66,18 @@ void print(const char *str)
     }
 }
 static struct paging_4gb_chunk* kernel_chunk = 0;
+void panic(const char* msg)
+{
+    print(msg);
+    while(1) {}
+}
 void kernel_main()
 {
     terminal_initialize();
     print("Hello world!\ntest");
+    // panic("ERROR");
     kheap_init();
+    fs_init();
     disk_search_and_init();
     // Initialize the interrupt descriptor table
     idt_init();
@@ -80,10 +88,15 @@ void kernel_main()
     enable_paging();
 
     enable_interrupts();
-    struct disk_stream* stream = diskstreamer_new(0);
-    diskstreamer_seek(stream, 0x201);
-    unsigned char c = 0;
-    diskstreamer_read(stream, &c, 1);
+    int fd = fopen("0:/hello.txt", "r");
+    if (fd)
+    {
+        struct file_stat s;
+        fstat(fd, &s);
+        fclose(fd);
+
+        print("testing\n");
+    }
     while(1) {}
 
 }
