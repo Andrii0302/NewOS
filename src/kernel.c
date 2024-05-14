@@ -6,6 +6,7 @@
 #include "memory/heap/kheap.h"
 #include "memory/paging/paging.h"
 #include "memory/memory.h"
+#include "keyboard/keyboard.h"
 #include "string/string.h"
 #include "isr80h/isr80h.h"
 #include "task/task.h"
@@ -31,7 +32,23 @@ void terminal_putchar(int x, int y, char c, char colour)
 {
     video_mem[(y * VGA_WIDTH) + x] = terminal_make_char(c, colour);
 }
+void terminal_backspace()
+{
+    if (terminal_row == 0 && terminal_col == 0)
+    {
+        return;
+    }
 
+    if (terminal_col == 0)
+    {
+        terminal_row -= 1;
+        terminal_col = VGA_WIDTH;
+    }
+
+    terminal_col -=1;
+    terminal_writechar(' ', 15);
+    terminal_col -=1;
+}
 void terminal_writechar(char c, char colour)
 {
     if (c == '\n')
@@ -40,7 +57,11 @@ void terminal_writechar(char c, char colour)
         terminal_col = 0;
         return;
     }
-
+    if (c == 0x08)
+    {
+        terminal_backspace();
+        return;
+    }
     terminal_putchar(terminal_col, terminal_row, c, colour);
     terminal_col += 1;
     if (terminal_col >= VGA_WIDTH)
@@ -94,6 +115,10 @@ struct gdt_structured gdt_structured[NEWOS_TOTAL_GDT_SEGMENTS] = {
     {.base = 0x00, .limit = 0xffffffff, .type = 0xf2},             // User data segment
     {.base = (uint32_t)&tss, .limit=sizeof(tss), .type = 0xE9}      // TSS Segment            
 };
+// void pic_timer_callback(struct interrupt_frame* frame)
+// {
+//     print("Timer activated\n");
+// }
 void kernel_main()
 {
     terminal_initialize();
@@ -120,12 +145,16 @@ void kernel_main()
     paging_switch(kernel_chunk);
     enable_paging();
     isr80h_register_commands();
+    keyboard_init();
+    // idt_register_interrupt_callback(0x20, pic_timer_callback);
     struct process* process = 0;
-    int res = process_load("0:/blank.bin", &process);
+    int res = process_load_switch("0:/blank.bin", &process);
     if (res != NEWOS_ALL_OK){
         panic("Failed to load blank.bin\n");
     }
-    
+    //keyboard_push('A');
+
+
     task_run_first_ever_task();
     while(1) {}
 
