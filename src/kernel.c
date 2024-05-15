@@ -148,9 +148,9 @@ void kernel_main()
     keyboard_init();
     // idt_register_interrupt_callback(0x20, pic_timer_callback);
     struct process* process = 0;
-    int res = process_load_switch("0:/blank.bin", &process);
+    int res = process_load_switch("0:/blank.elf", &process);
     if (res != NEWOS_ALL_OK){
-        panic("Failed to load blank.bin\n");
+        panic("Failed to load blank.elf\n");
     }
     //keyboard_push('A');
 
