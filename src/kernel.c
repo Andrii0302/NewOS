@@ -154,7 +154,20 @@ void kernel_main()
     }
     //keyboard_push('A');
 
+    struct command_argument argument;
+    strcpy(argument.argument, "Testing!");
+    argument.next = 0x00; 
 
+    process_inject_arguments(process, &argument);
+    res = process_load_switch("0:/blank.elf", &process);
+    if (res != NEWOS_ALL_OK)
+    {
+        panic("Failed to load blank.elf\n");
+    }
+
+    strcpy(argument.argument, "Abc!");
+    argument.next = 0x00; 
+    process_inject_arguments(process, &argument);
     task_run_first_ever_task();
     while(1) {}
 
